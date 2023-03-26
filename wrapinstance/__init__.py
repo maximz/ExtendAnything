@@ -4,11 +4,14 @@ __author__ = """Maxim Zaslavsky"""
 __email__ = "maxim@maximz.com"
 __version__ = "0.0.1"
 
+from typing import Any, Dict
+
 # Set default logging handler to avoid "No handler found" warnings.
 import logging
 from logging import NullHandler
 
 logging.getLogger(__name__).addHandler(NullHandler())
+
 
 class ClassInstanceWrapper:
     """
@@ -44,7 +47,7 @@ class ClassInstanceWrapper:
     # See test_wrong_usage_does_not_cause_infinite_recursion()
     _inner = None
 
-    def __init__(self, inner):
+    def __init__(self, inner: Any) -> None:
         # Set inner
         self._inner = inner
         # TODO: should we dynamically register as a subclass of inner's class?
@@ -52,7 +55,7 @@ class ClassInstanceWrapper:
         # And https://stackoverflow.com/questions/56658569/how-to-create-a-python-class-that-is-a-subclass-of-another-class-but-fails-issu
         # For now we will fail isinstance checks for parent class.
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> Any:
         # Pass unknown attribute accesses through to inner.
         # See https://python-reference.readthedocs.io/en/latest/docs/dunderattr/getattr.html
         return getattr(self._inner, attr)
@@ -82,13 +85,13 @@ class ClassInstanceWrapper:
     # [Previous line repeated 1471 more times]
     # RecursionError: maximum recursion depth exceeded while calling a Python object
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         return vars(self)
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Dict[str, Any]) -> None:
         vars(self).update(state)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}: {repr(self._inner)}"
 
     def _repr_mimebundle_(self, **kwargs):
