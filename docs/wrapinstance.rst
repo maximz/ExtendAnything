@@ -1,4 +1,4 @@
-wrapinstance package
+extendanything package
 =================
 
 Submodules
@@ -7,7 +7,7 @@ Submodules
 Module contents
 ---------------
 
-.. automodule:: wrapinstance
+.. automodule:: extendanything
     :members:
     :undoc-members:
     :show-inheritance:

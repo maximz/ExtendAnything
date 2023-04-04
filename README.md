@@ -1,9 +1,9 @@
 # Wrap Instance
 
-[![](https://img.shields.io/pypi/v/wrapinstance.svg)](https://pypi.python.org/pypi/wrapinstance)
-[![CI](https://github.com/maximz/wrapinstance/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/maximz/wrapinstance/actions/workflows/ci.yaml)
-[![](https://img.shields.io/badge/docs-here-blue.svg)](https://wrapinstance.maximz.com)
-[![](https://img.shields.io/github/stars/maximz/wrapinstance?style=social)](https://github.com/maximz/wrapinstance)
+[![](https://img.shields.io/pypi/v/extendanything.svg)](https://pypi.python.org/pypi/extendanything)
+[![CI](https://github.com/maximz/extendanything/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/maximz/extendanything/actions/workflows/ci.yaml)
+[![](https://img.shields.io/badge/docs-here-blue.svg)](https://extendanything.maximz.com)
+[![](https://img.shields.io/github/stars/maximz/extendanything?style=social)](https://github.com/maximz/extendanything)
 
 ## TODOs: Configuring this template
 
@@ -18,7 +18,7 @@ Set up Codecov at TODO
 ## Installation
 
 ```bash
-pip install wrapinstance
+pip install extendanything
 ```
 
 ## Usage

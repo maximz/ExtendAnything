@@ -1,4 +1,4 @@
-wrapinstance documentation table of contents
+extendanything documentation table of contents
 ======================================
 
 .. toctree::
@@ -6,5 +6,5 @@ wrapinstance documentation table of contents
    :caption: Contents:
 
    Overview <index>
-   API <wrapinstance>
+   API <extendanything>
    changelog

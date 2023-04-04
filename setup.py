@@ -21,9 +21,9 @@ test_requirements = ["pytest>=3", "joblib"]
 setup(
     author="Maxim Zaslavsky",
     author_email="maxim@maximz.com",
-    name="wrapinstance",
+    name="extendanything",
     description="Wrap Instance",
-    packages=find_packages(include=["wrapinstance", "wrapinstance.*"]),
+    packages=find_packages(include=["extendanything", "extendanything.*"]),
     python_requires=">=3.8",
     version="0.0.1",
     classifiers=[
@@ -43,6 +43,6 @@ setup(
     setup_requires=setup_requirements,
     test_suite="tests",
     tests_require=test_requirements,
-    url="https://github.com/maximz/wrapinstance",
+    url="https://github.com/maximz/extendanything",
     zip_safe=False,
 )

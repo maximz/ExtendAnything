@@ -9,7 +9,7 @@ if "%SPHINXBUILD%" == "" (
 )
 set SOURCEDIR=.
 set BUILDDIR=_build
-set SPHINXPROJ=wrapinstance
+set SPHINXPROJ=extendanything
 
 if "%1" == "" goto help
 

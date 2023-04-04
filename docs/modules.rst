@@ -1,7 +1,7 @@
-wrapinstance
+extendanything
 =========
 
 .. toctree::
    :maxdepth: 4
 
-   wrapinstance
+   extendanything

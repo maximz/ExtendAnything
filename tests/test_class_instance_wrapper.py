@@ -3,7 +3,7 @@
 import joblib
 import pytest
 
-from wrapinstance import ClassInstanceWrapper
+from extendanything import ClassInstanceWrapper
 
 
 class SimpleClassifier:
