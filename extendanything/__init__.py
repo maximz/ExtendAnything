@@ -1,4 +1,4 @@
-"""Wrap Instance."""
+"""Extend Anything."""
 
 __author__ = """Maxim Zaslavsky"""
 __email__ = "maxim@maximz.com"
@@ -6,26 +6,17 @@ __version__ = "0.0.1"
 
 from typing import Any, Dict
 
-# Set default logging handler to avoid "No handler found" warnings.
-import logging
-from logging import NullHandler
 
-logging.getLogger(__name__).addHandler(NullHandler())
-
-
-class ClassInstanceWrapper:
+class ExtendAnything:
     """
     Allows wrapping any class instance. This is like casting an instance of a base class to a derived class.
     The provided class instance will be set as self._inner but its attributes will be exposed directly.
     Any additional methods will override what's available from the original class instance.
 
-    Based on https://stackoverflow.com/a/1383646/130164
-    See also https://stackoverflow.com/a/1445289/130164 for potential alternatives.
-
     Usage example:
         class BaseClass:
             pass
-        class DerivedClass(ClassInstanceWrapper):
+        class DerivedClass(ExtendAnything):
             def __init__(self, inner, ...):
                 # sets self._inner
                 super().__init__(inner)
@@ -38,6 +29,9 @@ class ClassInstanceWrapper:
     - Modifying attributes on the wrapped instance detaches those instance attributes, rather than modifying the inner instance
     - Modifying attributes on the base inner instance will be passed through unless those attributes have already been detached as above.
     """
+
+    # Based on https://stackoverflow.com/a/1383646/130164
+    # See also https://stackoverflow.com/a/1445289/130164 for potential alternatives.
 
     # Set _inner None here to prevent infinite recursion in this scenario:
     # A child class attempts to access a self.something that doesn't exist (triggering __getattr__),
@@ -53,6 +47,7 @@ class ClassInstanceWrapper:
         # TODO: should we dynamically register as a subclass of inner's class?
         # See https://stackoverflow.com/questions/9269902/is-there-a-way-to-create-subclasses-on-the-fly
         # And https://stackoverflow.com/questions/56658569/how-to-create-a-python-class-that-is-a-subclass-of-another-class-but-fails-issu
+        # And https://stackoverflow.com/a/29256784/130164
         # For now we will fail isinstance checks for parent class.
 
     def __getattr__(self, attr: str) -> Any:
@@ -76,11 +71,7 @@ class ClassInstanceWrapper:
     #     Unpickler.load_build(self)
     # File "pickle.py", line 1550, in load_build
     #     setstate = getattr(inst, "__setstate__", None)
-    # File "class_instance_wrapper.py", line 33, in __getattr__
-    #     return getattr(self._inner, attr)
-    # File "class_instance_wrapper.py", line 33, in __getattr__
-    #     return getattr(self._inner, attr)
-    # File "class_instance_wrapper.py", line 33, in __getattr__
+    # File "extendanything.py", line 33, in __getattr__
     #     return getattr(self._inner, attr)
     # [Previous line repeated 1471 more times]
     # RecursionError: maximum recursion depth exceeded while calling a Python object
@@ -98,6 +89,6 @@ class ClassInstanceWrapper:
         """Configure how Jupyter displays an object's repr."""
         return {"text/plain": repr(self), "text/html": f"<pre>{repr(self)}</pre>"}
 
-    # TODO: make ClassInstanceWrapper subscriptable:
+    # TODO: make ExtendAnything subscriptable:
     # forward __getitem__() to parent if it exists
     # test case is sklearn Pipeline [:-1]

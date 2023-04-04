@@ -2,8 +2,9 @@
 
 import joblib
 import pytest
+import pickle
 
-from extendanything import ClassInstanceWrapper
+from extendanything import ExtendAnything
 
 
 class SimpleClassifier:
@@ -26,7 +27,7 @@ class SimpleClassifier:
         return self.predict()
 
 
-class AdjustedClassifier(ClassInstanceWrapper):
+class AdjustedClassifier(ExtendAnything):
     def __init__(self, inner, extra_arg):
         # sets self._inner
         super().__init__(inner)
@@ -40,7 +41,7 @@ class AdjustedClassifier(ClassInstanceWrapper):
         return "Brand new" + self.extra_arg + self.extra_method()
 
 
-def test_class_instance_wrapper():
+def test_extend_anything():
     base_classifier = SimpleClassifier("dynamic")
     assert base_classifier.fixed_name == "static"
     assert base_classifier.dynamic_name == "dynamic"
@@ -91,14 +92,14 @@ def test_class_instance_wrapper():
     assert not isinstance(wrapped_classifier, SimpleClassifier)
 
 
-def test_class_instance_wrapper_repr():
+def test_extend_anything_repr():
     base_classifier = SimpleClassifier("dynamic")
     # wrap this instance of SimpleClassifier
     wrapped_classifier = AdjustedClassifier(base_classifier, "extra arg")
     assert repr(wrapped_classifier) == "AdjustedClassifier: " + repr(base_classifier)
 
 
-def test_class_instance_wrapper_pickleable(tmp_path):
+def test_extend_anything_pickleable(tmp_path):
     """
     Test that class instance wrapper objects can be pickled.
     This requires us to override __getstate__ and __setstate__. See notes in the main class.
@@ -109,6 +110,12 @@ def test_class_instance_wrapper_pickleable(tmp_path):
     assert wrapped_classifier.predict() == "Overloaded Predict" + "Simple Predict"
 
     # make sure pickleable and unpickaleable
+    wrapped_classifier_loaded = pickle.loads(pickle.dumps(wrapped_classifier))
+    assert (
+        wrapped_classifier_loaded.predict() == "Overloaded Predict" + "Simple Predict"
+    )
+
+    # repeat with joblib
     # get temp file using https://docs.pytest.org/en/latest/how-to/tmp_path.html
     fname = tmp_path / "wrapper.joblib"
     joblib.dump(wrapped_classifier, fname)
@@ -118,7 +125,7 @@ def test_class_instance_wrapper_pickleable(tmp_path):
     )
 
 
-class WrongUsage(ClassInstanceWrapper):
+class WrongUsage(ExtendAnything):
     def __init__(self):
         # This is an example of wrong usage -- do not do this.
         # We just want to test what happens if this child class tries to access a non-existent self attribute before calling super init.
