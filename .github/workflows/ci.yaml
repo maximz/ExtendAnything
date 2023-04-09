@@ -93,21 +93,25 @@ jobs:
         with:
           args: deploy --dir="docs/_build/html"
         timeout-minutes: 5
-      - name: deploy prod docs to netlify
-        if: ${{ env.MASTER_PUSH == 'true' }}
-        uses: netlify/actions/cli@master
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.PROD_NETLIFY_SITE_ID }}
-        with:
-          args: deploy --dir="docs/_build/html" --prod
-        timeout-minutes: 5
 
-  pypi:
+
+  # If the tests and docs jobs succeeded,
+  # and if we are pushing to master branch (i.e. PR already merged),
+  # then deploy package to PyPI and docs to prod.
+  # Here we use an environment to ensure that production secrets can only be accessed by Github Actions jobs triggered from a particular branch (in this case, master).
+  deploy:
+    # Deploy to PyPI and prod docs site.
     runs-on: ubuntu-latest
     needs: [tests, docs]
-    # can't use env here yet because not defined - TODO: is this still true?
-    # if: env.MASTER_PUSH == 'true'
+
+    # Only even attempt using the environment if we are going to be able to
+    # Unfortunately env is not defined here, so can't use env.MASTER_PUSH directly (https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+    # Specify which environment to run this in, so the right secrets are loaded
+    # the prod environment will fail if we're not on the master branch when we try this
+    environment: production
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -120,12 +124,24 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -r requirements_dev.txt
           pip install build
+
       - name: Build a binary wheel and a source tarball
         run: python -m build --sdist --wheel --outdir dist/ .
+      - name: make docs
+        run: make docs
+
+      - name: deploy prod docs to netlify
+        uses: netlify/actions/cli@master
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.PROD_NETLIFY_SITE_ID }}
+        with:
+          args: deploy --dir="docs/_build/html" --prod
+        timeout-minutes: 5
+
       - name: Publish package
         # TODO: other metadata for pypi
         uses: pypa/gh-action-pypi-publish@master
-        if: ${{ env.MASTER_PUSH == 'true' }}
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}

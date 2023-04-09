@@ -1,0 +1,72 @@
+name: Release Drafter
+
+on:
+  push:
+    branches:
+      - master
+
+  # Disable default release-drafter config to create draft releases:
+  # (They always said "No changes" in testing for some reason.
+  # So we will just make and instantly publish release on the "push" run after merge to master.)
+
+  # # pull_request event is required only for autolabeler
+  # pull_request:
+  #   # Only following types are handled by the action, but one can default to all as well
+  #   types: [opened, reopened, synchronize]
+  # # pull_request_target event is required for autolabeler to support PRs from forks
+  # # pull_request_target:
+  # #   types: [opened, reopened, synchronize]
+
+env:
+  # this will be converted to a string "true" or "false"
+  MASTER_PUSH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+
+permissions:
+  contents: read
+
+jobs:
+  update_release_draft:
+    permissions:
+      # write permission is required to create a github release
+      contents: write
+
+      # write permission is required for autolabeler
+      # otherwise, read permission is required at least
+      pull-requests: read # write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Get new version
+        id: get-version
+        # Load current version (and a tag name with "v" prefix) into a step output
+        run: |
+          RAW_VERSION=$(python setup.py --version)
+          echo "TAG=v$RAW_VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$RAW_VERSION" >> $GITHUB_OUTPUT
+      - name: Echo version for debug
+        run: echo "The new version is ${{ steps.get-version.outputs.VERSION }}, tag ${{ steps.get-version.outputs.TAG }}"
+
+
+      - name: Publish the release notes and tag new version, or drafts release notes as PRs merge into master
+        # This step succeeds even when release-drafter internally fails with an HttpError.
+        uses: release-drafter/release-drafter@v5
+        id: release_drafter
+        with:
+          config-name: release-drafter-config.yml
+          disable-autolabeler: true
+          publish: true # revert to this if we retry draft releases: ${{ env.MASTER_PUSH == 'true' }}
+          tag: ${{ steps.get-version.outputs.TAG }}
+          version: ${{ steps.get-version.outputs.VERSION }}
+          commitish: master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Error if Release Drafter threw errors but still exited successfully
+        # Detect the situation described above
+        if: toJSON(steps.release_drafter.outputs) == '{}'
+        # Error out but provide error message (https://stackoverflow.com/a/74229789/130164)
+        run: |
+          echo "::error Release drafter step failed above."
+          exit 1
