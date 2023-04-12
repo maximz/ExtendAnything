@@ -146,7 +146,7 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
 
-  make_github_release:
+  make_github_tag_and_release:
     needs: deploy
 
     # Only even attempt using the environment if we are going to be able to
