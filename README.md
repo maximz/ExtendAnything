@@ -1,114 +1,107 @@
-# ExtendAnything (WIP)
+# ExtendAnything
 
-[![](https://img.shields.io/pypi/v/extendanything.svg)](https://pypi.python.org/pypi/extendanything)
-[![CI](https://github.com/maximz/extendanything/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/maximz/extendanything/actions/workflows/ci.yaml)
-[![](https://img.shields.io/badge/docs-here-blue.svg)](https://extendanything.maximz.com)
-[![](https://img.shields.io/github/stars/maximz/extendanything?style=social)](https://github.com/maximz/extendanything)
+ExtendAnything is a small Python helper for wrapping an already-created object
+with a new interface. A wrapper class can add methods, override selected method
+names, and still expose the original object's attributes without copying or
+reinitializing the original instance.
 
+The package is currently pre-alpha (`0.0.1`) and requires Python 3.8 or newer.
 
-## Inject new functionality into Python objects
+## Why it exists
 
-Extend any already-created Python object with new functionality, or replace its inner logic.
+Normal subclassing only helps before an object is created. ExtendAnything is for
+cases where the instance already exists, such as a trained model, configured
+client, or object returned by another library, and you want to attach
+project-specific behavior around it.
 
-Suppose you trained a scikit-learn classifier and want to inject custom logic. The classifier instance already exists, and now you want it to have a `featurize()` method and a different rule for predicting class labels with `predict()`.
+Conceptually, it behaves like a lightweight dynamic cast: the wrapper handles
+the behavior it defines, and missing attribute lookups fall through to the
+wrapped object.
 
-Here's how to modify the behavior of your existing scikit-learn classifier object with ExtendAnything:
+## How it works
+
+Subclass `ExtendAnything`, accept the object to wrap, and call
+`super().__init__(inner)`. The base class stores the original object on
+`self._inner` and implements `__getattr__` so attributes and methods not found on
+the wrapper are read from `self._inner`.
 
 ```python
-# pip install extendanything
 from extendanything import ExtendAnything
 
-# Create the original instance
-clf = sklearn.linear_model.LogisticRegression().fit(X_train, y_train)
 
-# Define a wrapper class with the functionality you want.
-class CustomClassifier(ExtendAnything):
-    # The constructor accepts the existing instance you want to wrap.
-    def __init__(self, model):
-        super().__init__(model)
+class Predictor:
+    def __init__(self, name):
+        self.name = name
 
-    # Add functionality: introduce a brand new method.
-    def featurize(self, df: pd.DataFrame) -> np.ndarray:
-        X = df.values # ...
-        return X
+    def predict(self):
+        return "base prediction"
 
-    # Replace the existing predict() with new logic:
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        # For example, return the least likely class.
-        # Here, classes_ and predict_proba come from the original model.
-        return self.classes_[np.argmin(self.predict_proba(X), axis=-1)]
 
-# Apply the wrapper
-wrapped_clf = CustomClassifier(clf)
+class EnhancedPredictor(ExtendAnything):
+    def __init__(self, inner, prefix):
+        super().__init__(inner)
+        self.prefix = prefix
 
-# Use standard scikit-learn classifier functionality
-# These calls are passed through without modification
-classes = wrapped_clf.classes_
+    def predict(self):
+        return f"{self.prefix}: {self._inner.predict()}"
 
-# Use new or modified functionality
-# These calls use your CustomClassifier's logic
-X_test = wrapped_clf.featurize(df_test)
-y_test = wrapped_clf.predict(X_test)
+    def explain(self):
+        return f"{self.name} -> {self.predict()}"
+
+
+base = Predictor("demo")
+wrapped = EnhancedPredictor(base, "custom")
+
+assert wrapped.name == "demo"  # forwarded to base
+assert wrapped.predict() == "custom: base prediction"  # wrapper override
+assert wrapped.explain() == "demo -> custom: base prediction"  # wrapper-only method
 ```
 
-## What's happening here?
+The wrapper also defines `__getstate__` and `__setstate__`, so wrapped objects can
+round-trip through `pickle` and `joblib` when the wrapped object itself supports
+that.
 
-You can think of `CustomClassifier(clf)` as dynamically casting the scikit-learn classifier object to a subclass of your choice.
+## Installation
 
-* Instantiate the `CustomClassifier` wrapper class by passing your existing object:`super().__init__(model)` sets `self._inner = model`.
+The runtime package has no required third-party dependencies.
 
-* Get: Any unknown attribute accesses are passed through to `self._inner`. This means you can access the original object's attributes and methods, without defining them explicitly in the wrapper class.
+```bash
+pip install extendanything
+```
 
-* Set: Setting attributes detaches them, rather than modifying the inner instance.
+For local development from this repository:
 
-* You can access the original object's functionality with `self._inner`.
+```bash
+pip install -r requirements_dev.txt
+pip install -e .
+```
 
-* It's pickle-able.
+## Important behavior
 
-## Limitations
-
-* Logic defined in the base (wrapped) class can't access the derived (wrapper) class's overloaded methods.
-  * Example: If you call `predict()` and that's not overloaded in your wrapper class, the call is passed through to your original wrapped instance. If `predict()` calls `predict_proba()`, it will use the original object's `predict_proba()`, _even if you created an overloaded `predict_proba()` in your wrapper class.
-
-* Modifying attributes on the wrapped instance detaches those instance attributes, rather than modifying the inner instance.
-  * Future accesses will hit the detached version belonging to the wrapper, not to the inner instance.
-  * If needed, you can propogate changes to the inner instance by modifying `self._inner` directly. Attribute modifications directly on the base inner instance will be visible through the outer wrapped class's attributes, unless those attributes have already been detached by being modified on the outer instance.
-
-* The final wrapped instance is not an official subclass of the original class. (It will not pass an `isinstance` check).
-
-* Indexing like `[0]` is not currently passed through to the inner instance. For now use `.inner[0]`.
+- Reads of missing attributes are forwarded to `self._inner`.
+- Methods and attributes defined on the wrapper take precedence over the wrapped
+  object.
+- Assigning `wrapped.attr = value` writes to the wrapper, not to the inner
+  object. To mutate the wrapped object, assign through `wrapped._inner.attr`.
+- If the inner object changes, forwarded reads reflect those changes unless the
+  wrapper has already set an attribute with the same name.
+- Methods running inside the inner object still use the inner object's own
+  method resolution. If an inner method calls `self.predict()`, it will not call
+  a `predict()` override defined on the wrapper.
+- The wrapper is not registered as a subclass of the wrapped object's class, so
+  `isinstance(wrapped, InnerClass)` is false.
+- Special methods such as indexing are not generally forwarded; use
+  `wrapped._inner[...]` when direct access to the original object is needed.
 
 ## Development
 
-Submit PRs against `develop` branch, then make a release pull request to `master`.
-
 ```bash
-# Install requirements
-pip install --upgrade pip wheel
-pip install -r requirements_dev.txt
-
-# Install local package
-pip install -e .
-
-# Install pre-commit
-pre-commit install
-
-# Run tests
 make test
-
-# Run lint
 make lint
-
-# bump version before submitting a PR against master (all master commits are deployed)
-bump2version patch # possible: major / minor / patch
-
-# also ensure CHANGELOG.md updated
+make docs
 ```
 
-## TODOs: Configuring this template
+Tests cover attribute forwarding, wrapper overrides, attribute detachment,
+`repr`, and `pickle`/`joblib` serialization.
 
-Create a Netlify site for your repository, then turn off automatic builds in Netlify settings.
-
-Add these CI secrets: `PYPI_API_TOKEN`, `NETLIFY_AUTH_TOKEN` (Netlify user settings - personal access tokens), `DEV_NETLIFY_SITE_ID`, `PROD_NETLIFY_SITE_ID` (API ID from Netlify site settings)
-
-Set up Codecov at TODO
+ExtendAnything is released under the MIT license.
