@@ -1,5 +1,10 @@
 # ExtendAnything
 
+[![](https://img.shields.io/pypi/v/extendanything.svg)](https://pypi.python.org/pypi/extendanything)
+[![CI](https://github.com/maximz/extendanything/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/maximz/extendanything/actions/workflows/ci.yaml)
+[![](https://img.shields.io/badge/docs-here-blue.svg)](https://extendanything.maximz.com)
+[![](https://img.shields.io/github/stars/maximz/extendanything?style=social)](https://github.com/maximz/extendanything)
+
 ExtendAnything is a small Python helper for wrapping an already-created object
 with a new interface. A wrapper class can add methods, override selected method
 names, and still expose the original object's attributes without copying or
